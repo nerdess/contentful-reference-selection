@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import { useSDK } from '@contentful/react-apps-toolkit';
+import { FieldAppSDK } from '@contentful/app-sdk';
 
-const useAutoResizer = () => {
+const useAutoResizer = (): void => {
 
-    const sdk = useSDK();
+    const sdk = useSDK<FieldAppSDK>();
     const window = sdk.window;
 
 	useEffect(() => {

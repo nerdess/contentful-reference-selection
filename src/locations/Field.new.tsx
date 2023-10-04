@@ -4,7 +4,7 @@ import { FieldAppSDK } from '@contentful/app-sdk';
 import { /* useCMA, */ useSDK } from '@contentful/react-apps-toolkit';
 import Select from 'react-select';
 import useAutoResizer from '../lib/hooks/useAutoResizer';
-import useGetEntries from '../lib/hooks/useGetEntries';
+import useGetEntries from '../lib/hooks/useGetEntriesByContentTypes';
 import { MultiSelect } from "react-multi-select-component";
 
 const Field = () => {
