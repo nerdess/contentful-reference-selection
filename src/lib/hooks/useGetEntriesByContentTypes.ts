@@ -17,6 +17,7 @@ const useGetEntriesByContentTypes = (
 
 	useEffect(() => {
 		if (!environment) return;
+        if (contentTypes.length === 0) return;
 
         setIsLoading(true);
 
@@ -33,7 +34,7 @@ const useGetEntriesByContentTypes = (
               }, []);
             setIsLoading(false);
             setEntries(itemsConcat);
-        });
+        }); //todo: error handling
 
         return () => setIsLoading(false);
 

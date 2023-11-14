@@ -17,6 +17,7 @@ const useGetEntriesByIds = (
 
 	useEffect(() => {
 		if (!environment) return;
+        if (ids.length === 0) return;
 
         setIsLoading(true);
         const promises = ids.map((id) => {
@@ -26,12 +27,14 @@ const useGetEntriesByIds = (
         });
 
         Promise.all(promises).then((results) => {
+
             const items: Entry[][] = results.map(({items}) => items)
             const itemsConcat = items.reduce((result, currentArray) => {
                 return result.concat(currentArray);
               }, []);
             setIsLoading(false);
             setEntries(itemsConcat);
+          
         });
 
         return () => setIsLoading(false);

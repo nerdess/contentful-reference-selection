@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useCMA from './useCMA';
 
-type Result = {
+export type EntriesTitle = {
     id: string;
     name: string;
     displayField: string;
@@ -9,7 +9,7 @@ type Result = {
 
 type GetEntriesHookResult = {
     isLoading: boolean;
-	entriesTitles: Result[];
+	entriesTitles: EntriesTitle[];
 };
 
 const useGetEntriesTitles = (
@@ -17,7 +17,7 @@ const useGetEntriesTitles = (
 ): GetEntriesHookResult => {
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [entriesTitles, setEntriesTitles] = useState<Result[]>([]);
+	const [entriesTitles, setEntriesTitles] = useState<EntriesTitle[]>([]);
 	const { environment } = useCMA();
 
 	useEffect(() => {

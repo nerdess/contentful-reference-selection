@@ -6,7 +6,7 @@ type Result = {
 	contentTypes: string;
 };
 
-const useGetContentTypes = (ids: string[]): Result => {
+const useGetContentTypesByIds = (ids: string[]): Result => {
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [contentTypes, setContentTypes] = useState<any>([]);
@@ -39,4 +39,4 @@ const useGetContentTypes = (ids: string[]): Result => {
 	};
 };
 
-export default useGetContentTypes;
+export default useGetContentTypesByIds;
