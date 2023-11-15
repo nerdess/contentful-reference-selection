@@ -9,23 +9,30 @@ import useGetEntriesTitles, { EntriesTitle } from '../lib/hooks/useGetEntriesTit
 import useGetContentTypesByIds from '../lib/hooks/useGetContentTypesByIds';
 import getValidationsFromField from '../lib/utils/getValidationsFromField';
 import CustomSelect from '../components/CustomSelect/CustomSelect';
-import useGetEntriesByQuery from '../lib/hooks/useGetEntriesByQuery';
 import useGetContentTypesByNames from '../lib/hooks/useGetContentTypesByNames';
-import { ContentType } from 'contentful-management';
+import { LEVEL_FIELD_ID } from '../const';
+import getEntryLevel from '../lib/utils/getEntryLevel';
 
 
 interface LinkContentType {
 	linkContentType: string[];
 }
 
-const getDefaultValue = (
+const getDefaultValue = ({
+	entries, 
+	entriesTitles, 
+	locale, 
+	contentTypes,
+	levels
+}:{
 	entries: Entry[], 
 	entriesTitles: EntriesTitle[], 
 	locale: string, 
-	contentTypes: string[]
-) => {
+	contentTypes: string[],
+	levels: any[]
+}) => {
 
-	if (!entriesTitles) return [];
+	if (!entriesTitles || !contentTypes) return [];
 
 	const result = entries.map((entry: Entry) => {
 
@@ -37,6 +44,13 @@ const getDefaultValue = (
 		const label = (!!displayField && !!locale) ? (entry.fields[displayField][locale]) : 'Untitled';
 		const error = !contentTypes.includes(contentType);
 
+
+		const level = getEntryLevel({
+			entry, 
+			locale,
+			levels
+		});
+
 		return {
 			entry: {
 				sys: {
@@ -47,7 +61,8 @@ const getDefaultValue = (
 			},
 			value: entry.sys.id,
 			label,
-			error
+			error,
+			level
 		};
   	});
   	return result;
@@ -76,18 +91,6 @@ const validationCheck = (field: FieldAppSDK['field']): boolean | string => {
   return false;
 }
 
-const prepareOptions = ({
-	options, 
-	contentTypes
-}: {
-	options: Entry[], 
-	contentTypes: ContentType[]
-}) => {
-
-
-	return options;
-}
-
 const Field = () => {
 
 	useAutoResizer();
@@ -107,39 +110,40 @@ const Field = () => {
 
   	const defaultIds = useMemo(() => getIds(sdk.field.getValue()), [sdk.field]);
 
-	
 	const {
 		isLoading: isLoadingContentTypes,
 		contentTypes: defaultsContentTypes
 	} = useGetContentTypesByIds(defaultIds);
-	
-
-	/*const {
-		//isLoading: isLoadingContentTypes,
-		entries: baz
-	} = useGetEntriesByIds(optionsContentTypes);*/
 
 	const contentTypes = useMemo(() => {
 		return [...new Set([...optionsContentTypes, ...defaultsContentTypes])]
 	}, [optionsContentTypes, defaultsContentTypes]);
 
+	const { 
+		isLoading: isLoadingOptions, 
+		entries: options 
+	} = useGetEntriesByContentTypes(optionsContentTypes);
 
-	//const { isLoading: isLoadingContentTypes, entries: contentTypes } = useGetEntriesByContentTypes(optionsContentTypes);
-	const { isLoading: isLoadingOptions, entries: options } = useGetEntriesByContentTypes(optionsContentTypes);
-	const { isLoading: isLoadingDefaults, entries: defaults } = useGetEntriesByIds(defaultIds);
-	const { isLoading: isLoadingEntriesTitles, entriesTitles } = useGetEntriesTitles(contentTypes);
+	const { 
+		isLoading: isLoadingDefaults, 
+		entries: defaults 
+	} = useGetEntriesByIds(defaultIds);
+
+	const { 
+		isLoading: isLoadingEntriesTitles, 
+		entriesTitles 
+	} = useGetEntriesTitles(contentTypes);
 
 	const {
 		isLoading: isLoadinOptionsContentTypesFull,
 		isError: isErrorOptionsContentTypesFull,
 		result: optionsContentTypesFull
-	} = useGetContentTypesByNames(optionsContentTypes)
-	const defaultValue = useMemo(() => getDefaultValue(defaults, entriesTitles, sdk.field.locale, optionsContentTypes), [defaults, entriesTitles, sdk.field.locale, optionsContentTypes]);
+	} = useGetContentTypesByNames(optionsContentTypes);
 
-	const levels = optionsContentTypesFull.map((contentType) => {
+	const levels = useMemo(() => optionsContentTypesFull.map((contentType) => {
 
 		let _levels = [] as string[];
-		const validations = contentType.fields.find(({id}) => id === 'level')?.items?.validations;
+		const validations = contentType.fields.find(({id}) => id === LEVEL_FIELD_ID)?.items?.validations;
 
 		if (
 			Array.isArray(validations) 
@@ -154,7 +158,24 @@ const Field = () => {
 			levels: _levels
 		}
 
-	});
+	}), [optionsContentTypesFull]);
+
+
+
+	const defaultValue = useMemo(() => getDefaultValue({
+		entries: defaults, 
+		entriesTitles, 
+		locale: sdk.field.locale, 
+		contentTypes: optionsContentTypes,
+		levels
+	}), [
+		defaults, 
+		entriesTitles, 
+		sdk.field.locale,
+		optionsContentTypes,
+		levels
+	]);
+
 
 
 	if (
@@ -177,7 +198,6 @@ const Field = () => {
 	return (
 		<CustomSelect 
 			defaultValue={defaultValue}
-			//options={prepareOptions({options, contentTypes: optionsContentTypesFull})}
 			options={options}
 			entriesTitles={entriesTitles}
 			levels={levels}

@@ -1,5 +1,5 @@
 import React from 'react';
-import Field from './Field.new';
+import Field from './Field';
 import { render } from '@testing-library/react';
 import { mockCma, mockSdk } from '../../test/mocks';
 

@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Entry } from '@contentful/app-sdk';
 import useCMA from './useCMA';
-import { QueryOptions } from '@contentful/app-sdk/dist/types/entities';
 import { ContentType } from 'contentful-management';
 
 type GetEntriesHookResult = {

@@ -30,7 +30,7 @@ const useGetEntriesTitles = (
         });
 
         Promise.all(promises).then((results) => {
-            const result = results.map(({sys, name, displayField}): Result => {
+            const result = results.map(({sys, name, displayField}) => {
                 return {
                     id: sys.id,
                     name,

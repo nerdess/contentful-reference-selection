@@ -11,7 +11,7 @@ const useGetEntriesByContentTypes = (
 	contentTypes: string[]
 ): GetEntriesHookResult => {
 
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [entries, setEntries] = useState<Entry[]>([]);
 	const { environment } = useCMA();
 

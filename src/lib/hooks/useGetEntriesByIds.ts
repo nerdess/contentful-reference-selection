@@ -20,6 +20,7 @@ const useGetEntriesByIds = (
         if (ids.length === 0) return;
 
         setIsLoading(true);
+
         const promises = ids.map((id) => {
             return environment.getEntries({
 				'sys.id': id,

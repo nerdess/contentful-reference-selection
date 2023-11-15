@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
 	Badge,
 	Box,
-	Caption,
 	EntityStatusBadge,
 	Flex,
 	Stack,
@@ -24,7 +23,14 @@ import getEntryStatus, { PublishStatus } from '../../lib/utils/getEntryStatus';
 import getEntryLevel, { EntryLevel } from '../../lib/utils/getEntryLevel';
 import tokens from '@contentful/f36-tokens';
 import './styles.scss';
-import { reduce } from 'lodash';
+import { Entry } from '@contentful/app-sdk';
+
+const COLORMAPPING = [
+	tokens.gray300,
+	tokens.gray200,
+	tokens.gray100
+]
+
 
 /*interface CustomSelectProps {
 	isOpen: boolean;
@@ -37,7 +43,7 @@ interface Options {
 	label: string;
 	entry: EntrySaved;
 	status: PublishStatus;
-	level: number | null;
+	level: EntryLevel;
 }
 
 interface EntrySaved {
@@ -80,18 +86,22 @@ const MultiValueContainer = (props: MultiValueGenericProps) => (
 );
 
 const MultiValueLabel = (props: MultiValueGenericProps) => {
+
 	const { innerProps, data } = props as {
 		innerProps: MultiValueProps['innerProps'];
 		data: any;
 	};
 
 	const { css } = innerProps;
+	const {level} = data;
+
+	const bgColor = getBgColor(level.level);
 
 	const newInnerProps = {
 		...innerProps,
 		css: {
 			...(typeof css === 'object' ? css : {}),
-			backgroundColor: data.error ? tokens.red300 : tokens.gray300,
+			backgroundColor: data.error ? tokens.red300 : bgColor,
 			borderTopLeftRadius: tokens.borderRadiusSmall,
 			borderBottomLeftRadius: tokens.borderRadiusSmall,
 			borderTopRightRadius: 0,
@@ -109,18 +119,23 @@ const MultiValueRemove = (props: MultiValueRemoveProps) => {
 	};
 
 	const { css } = innerProps;
+	const {level} = data;
+
+	const bgColor = getBgColor(level.level);
 
 	const newInnerProps = {
 		...innerProps,
 		css: {
 			...(typeof css === 'object' ? css : {}),
-			backgroundColor: data.error ? tokens.red300 : tokens.gray300,
+			backgroundColor: data.error ? tokens.red300 : bgColor,
 			borderTopLeftRadius: 0,
 			borderBottomLeftRadius: 0,
 			borderTopRightRadius: tokens.borderRadiusSmall,
 			borderBottomRightRadius: tokens.borderRadiusSmall,
+			transition: 'filter 0.2s ease-in-out',
 			':hover': {
-				backgroundColor: data.error ? tokens.red400 : tokens.gray400,
+				//backgroundColor: data.error ? tokens.red400 : bgColorHover,
+				filter: 'brightness(96%)',
 				color: 'inherit',
 			},
 		},
@@ -135,11 +150,13 @@ const MultiValueRemove = (props: MultiValueRemoveProps) => {
 	);
 };
 
+const getBgColor = (level: number | null) => {
+	return (level && COLORMAPPING[level-1]) ? COLORMAPPING[level-1] : 'transparent';
+}
+
 const Option = (props: OptionProps) => {
 
 	const { data } = props;
-
-	//console.log('data', data);
 
 	const {
 		status,
@@ -149,14 +166,7 @@ const Option = (props: OptionProps) => {
 		level: EntryLevel;
 	} = data as any;
 
-	const colorMapping = [
-		tokens.gray300,
-		tokens.gray200,
-		tokens.gray100
-	]
-
-
-	const bgColor = (level.level && colorMapping[level.level-1]) ? colorMapping[level.level-1] : 'red';
+	const bgColor = getBgColor(level.level);
 
 	return (
 		<components.Option {...props}>
@@ -167,16 +177,19 @@ const Option = (props: OptionProps) => {
 				<Stack fullWidth justifyContent='space-between'>
 					<Box>{props.label}</Box>
 					<Stack justifyContent='space-between'>
-						{(level.level && level.label) && <Box>
+						{(!!level.level && !!level.label) && <Box>
 							<Badge 
-								//variant="secondary"
 								style={{
 									backgroundColor: bgColor, 
 									whiteSpace: 'nowrap',
 									color: 'inherit'
 								}}
 							>
-								{level.label}
+								<span style={{
+									fontWeight: 'normal'
+								}}>
+									{level.label}
+								</span>
 							</Badge>
 						</Box>}
 						<Box>
@@ -204,19 +217,21 @@ const Input = (props: InputProps) => {
 };
 
 const sortOptionsByLevel = (
-	options: any[], 
+	options: Entry[], 
 	levels: any[],
 	locale: string
 ) => {
 
-	const sorted = options.sort((a,b) => {
+	if (options.length === 0) return options;
 
-		const levelA = a.fields.level[locale][0] || null;
+	return options.sort((a,b) => {
+
+		const levelA = a.fields.level ? a.fields.level[locale][0] : null;
 		const idA = a.sys.contentType.sys.id || null;
 		const levelsA = levels.find(({id}) => id === idA)?.levels || [];
 		const indexOfA = levelsA.indexOf(levelA);
 
-		const levelB = b.fields.level[locale][0] || null;
+		const levelB = b.fields.level ? b.fields.level[locale][0]: null;
 		const idB = b.sys.contentType.sys.id || null;
 		const levelsB = levels.find(({id}) => id === idB)?.levels || [];
 		const indexOfB = levelsB.indexOf(levelB);
@@ -224,7 +239,6 @@ const sortOptionsByLevel = (
 		return indexOfA - indexOfB;
 	});
 
-	return options;
 }
 
 
@@ -236,7 +250,7 @@ const CustomSelect = ({
 	levels
 }: {
 	defaultValue: any[];
-	options: any[];
+	options: Entry[];
 	entriesTitles: any[];
 	levels: any[];
 }) => {
@@ -245,6 +259,7 @@ const CustomSelect = ({
 	const sdk = useSDK<FieldAppSDK>();
 
 	const _options = sortOptionsByLevel(options, levels, sdk.field.locale);
+	//const _options = [...options];
 
 	return (
 		<Stack
@@ -265,7 +280,6 @@ const CustomSelect = ({
 						MultiValueRemove,
 					}}
 					isClearable={false}
-					//isOpen={isOpen}
 					styles={{
 						control: (baseStyles) => ({
 							...baseStyles,
@@ -285,7 +299,6 @@ const CustomSelect = ({
 					}}
 					hideSelectedOptions={false}
 					menuIsOpen={isOpen}
-					//selectProps={{isOpen}}
 					options={
 						/*_.orderBy(*/
 						_options.map(
@@ -298,6 +311,7 @@ const CustomSelect = ({
 										option.fields[entryTitle][sdk.field.locale]
 									) 
 									|| 'Untitled';
+
 								const level = getEntryLevel({
 									entry: option, 
 									locale: sdk.field.locale,
