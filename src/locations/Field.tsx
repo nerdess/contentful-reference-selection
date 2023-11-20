@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Spinner, Note } from '@contentful/f36-components';
 import { FieldAppSDK, Entry } from '@contentful/app-sdk';
 import { /* useCMA, */ useSDK } from '@contentful/react-apps-toolkit';
@@ -12,7 +12,6 @@ import CustomSelect from '../components/CustomSelect/CustomSelect';
 import useGetContentTypesByNames from '../lib/hooks/useGetContentTypesByNames';
 import { LEVEL_FIELD_ID } from '../const';
 import getEntryLevel from '../lib/utils/getEntryLevel';
-
 
 interface LinkContentType {
 	linkContentType: string[];
@@ -95,6 +94,7 @@ const Field = () => {
 
 	useAutoResizer();
 
+	const [isOpen, setIsOpen] = useState<boolean>(false);
 	const sdk = useSDK<FieldAppSDK>();
 	const error = useMemo(() => validationCheck(sdk.field), [sdk.field]);
 	const validations = useMemo(() => getValidationsFromField(sdk.field), [sdk.field]);
@@ -201,6 +201,8 @@ const Field = () => {
 			options={options}
 			entriesTitles={entriesTitles}
 			levels={levels}
+			setIsOpen={setIsOpen}
+			isOpen={isOpen}
 		/>
 	);
 };

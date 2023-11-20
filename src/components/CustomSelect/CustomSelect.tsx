@@ -22,8 +22,10 @@ import { DoneIcon, ArrowDownTrimmedIcon } from '@contentful/f36-icons';
 import getEntryStatus, { PublishStatus } from '../../lib/utils/getEntryStatus';
 import getEntryLevel, { EntryLevel } from '../../lib/utils/getEntryLevel';
 import tokens from '@contentful/f36-tokens';
-import './styles.scss';
 import { Entry } from '@contentful/app-sdk';
+import removeAccents from '../../lib/utils/removeAccents';
+import _ from 'lodash';
+import './styles.scss';
 
 const COLORMAPPING = [
 	tokens.gray300,
@@ -218,27 +220,22 @@ const Input = (props: InputProps) => {
 
 const sortOptionsByLevel = (
 	options: Entry[], 
-	levels: any[],
 	locale: string
 ) => {
 
 	if (options.length === 0) return options;
 
-	return options.sort((a,b) => {
+	const sortedOptions = _.flatMap(_.groupBy(options, (option) => {
+		return (option.fields.level && option.fields.level[locale]) ? option.fields.level[locale][0] : null;
+	}), v => _.sortBy(v, (option) => {
+		return (option.fields.tag && option.fields.tag[locale]) ? removeAccents(option.fields.tag[locale].toLowerCase()) : null;
+	}, 'ASC'));
 
-		const levelA = a.fields.level ? a.fields.level[locale][0] : null;
-		const idA = a.sys.contentType.sys.id || null;
-		const levelsA = levels.find(({id}) => id === idA)?.levels || [];
-		const indexOfA = levelsA.indexOf(levelA);
-
-		const levelB = b.fields.level ? b.fields.level[locale][0]: null;
-		const idB = b.sys.contentType.sys.id || null;
-		const levelsB = levels.find(({id}) => id === idB)?.levels || [];
-		const indexOfB = levelsB.indexOf(levelB);
-
-		return indexOfA - indexOfB;
+	const sortedGroup = _.sortBy(sortedOptions, (option) => {
+		return (option.fields.level && option.fields.tag[locale]) ? removeAccents(option.fields.level[locale][0].toLowerCase()) : null;
 	});
 
+	return sortedGroup;
 }
 
 
@@ -247,19 +244,20 @@ const CustomSelect = ({
 	defaultValue,
 	options,
 	entriesTitles,
-	levels
+	levels,
+	isOpen,
+	setIsOpen
 }: {
 	defaultValue: any[];
 	options: Entry[];
 	entriesTitles: any[];
 	levels: any[];
+	isOpen: boolean;
+	setIsOpen: (open: boolean) => void;
 }) => {
 
-	const [isOpen, setIsOpen] = useState<boolean>(false);
 	const sdk = useSDK<FieldAppSDK>();
-
-	const _options = sortOptionsByLevel(options, levels, sdk.field.locale);
-	//const _options = [...options];
+	const _options = sortOptionsByLevel(options, sdk.field.locale);
 
 	return (
 		<Stack
@@ -300,17 +298,14 @@ const CustomSelect = ({
 					hideSelectedOptions={false}
 					menuIsOpen={isOpen}
 					options={
-						/*_.orderBy(*/
 						_options.map(
 							(option): Options => {
 								const status = getEntryStatus(option);
 								const contentType = option.sys.contentType.sys.id;
 								const entryTitle = getEntryTitle(entriesTitles, contentType);
-								const label =
-									(
-										option.fields[entryTitle][sdk.field.locale]
-									) 
-									|| 'Untitled';
+
+								const labelObj = option.fields[entryTitle];
+								const label = (labelObj && labelObj[sdk.field.locale]) ? option.fields[entryTitle][sdk.field.locale] : 'Untitled';
 
 								const level = getEntryLevel({
 									entry: option, 
@@ -333,7 +328,6 @@ const CustomSelect = ({
 								};
 							}
 						)
-						//({ label }) => removeAccents(label.toLowerCase()))
 					}
 					classNamePrefix='crs'
 				/>
