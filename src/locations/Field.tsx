@@ -1,48 +1,63 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Spinner, Note } from '@contentful/f36-components';
 import { FieldAppSDK, Entry } from '@contentful/app-sdk';
 import { /* useCMA, */ useSDK } from '@contentful/react-apps-toolkit';
 import useAutoResizer from '../lib/hooks/useAutoResizer';
 import useGetEntriesByContentTypes from '../lib/hooks/useGetEntriesByContentTypes';
 import useGetEntriesByIds from '../lib/hooks/useGetEntriesByIds';
-import useGetEntriesTitles, { EntriesTitle } from '../lib/hooks/useGetEntriesTitles';
 import useGetContentTypesByIds from '../lib/hooks/useGetContentTypesByIds';
 import getValidationsFromField from '../lib/utils/getValidationsFromField';
 import CustomSelect from '../components/CustomSelect/CustomSelect';
 import useGetContentTypesByNames from '../lib/hooks/useGetContentTypesByNames';
 import { LEVEL_FIELD_ID } from '../const';
-import getEntryLevel from '../lib/utils/getEntryLevel';
+import getEntryLevel, { EntryLevel } from '../lib/utils/getEntryLevel';
+import { ContentType, EntryProps } from 'contentful-management';
+import getEntryStatus, { PublishStatus } from '../lib/utils/getEntryStatus';
+import sortEntriesByLevel from '../lib/utils/sortEntriesByLevel';
 
 interface LinkContentType {
 	linkContentType: string[];
 }
 
+export interface EntrySaved {
+	sys: {
+		type: 'Link';
+		linkType: string;
+		id: string;
+	};
+}
+
+export interface Option {
+	value: string;
+	label: string;
+	entry: EntrySaved;
+	status: PublishStatus;
+	level: EntryLevel;
+}
+
 const getDefaultValue = ({
 	entries, 
-	entriesTitles, 
 	locale, 
-	contentTypes,
+	validContentTypes,
+	contentTypesFull,
 	levels
 }:{
 	entries: Entry[], 
-	entriesTitles: EntriesTitle[], 
 	locale: string, 
-	contentTypes: string[],
+	validContentTypes: string[],
+	contentTypesFull: ContentType[],
 	levels: any[]
 }) => {
-
-	if (!entriesTitles || !contentTypes) return [];
 
 	const result = entries.map((entry: Entry) => {
 
 		const contentType = entry.sys.contentType.sys.id;
-		const entryTitle = entriesTitles.find(({id}) => contentType === id);
+		const error = !validContentTypes.includes(contentType);
+		const contentTypeObj = contentTypesFull.find(({sys}) => sys.id === contentType);
 		const {
 			displayField
-		} = entryTitle || {} ;
+		} = contentTypeObj || {} ;
 		const label = (!!displayField && !!locale) ? (entry.fields[displayField][locale]) : 'Untitled';
-		const error = !contentTypes.includes(contentType);
-
 
 		const level = getEntryLevel({
 			entry, 
@@ -64,6 +79,7 @@ const getDefaultValue = ({
 			level
 		};
   	});
+
   	return result;
 
 }
@@ -110,6 +126,9 @@ const Field = () => {
 
   	const defaultIds = useMemo(() => getIds(sdk.field.getValue()), [sdk.field]);
 
+
+	console.log('defaultIds', defaultIds)
+
 	const {
 		isLoading: isLoadingContentTypes,
 		contentTypes: defaultsContentTypes
@@ -119,28 +138,29 @@ const Field = () => {
 		return [...new Set([...optionsContentTypes, ...defaultsContentTypes])]
 	}, [optionsContentTypes, defaultsContentTypes]);
 
+	const {
+		isLoading: isLoadingContentTypesFull,
+		isError: isErrorContentTypesFull,
+		result: contentTypesFull
+	} = useGetContentTypesByNames(contentTypes);
+
+
+
+	const _optionsContentTypes = useMemo(() => {
+		return isOpen ? optionsContentTypes : [];
+	}, [optionsContentTypes, isOpen]);
+
 	const { 
 		isLoading: isLoadingOptions, 
 		entries: options 
-	} = useGetEntriesByContentTypes(optionsContentTypes);
+	} = useGetEntriesByContentTypes(_optionsContentTypes);
 
 	const { 
 		isLoading: isLoadingDefaults, 
 		entries: defaults 
 	} = useGetEntriesByIds(defaultIds);
 
-	const { 
-		isLoading: isLoadingEntriesTitles, 
-		entriesTitles 
-	} = useGetEntriesTitles(contentTypes);
-
-	const {
-		isLoading: isLoadinOptionsContentTypesFull,
-		isError: isErrorOptionsContentTypesFull,
-		result: optionsContentTypesFull
-	} = useGetContentTypesByNames(optionsContentTypes);
-
-	const levels = useMemo(() => optionsContentTypesFull.map((contentType) => {
+	const levels = useMemo(() => contentTypesFull.map((contentType) => {
 
 		let _levels = [] as string[];
 		const validations = contentType.fields.find(({id}) => id === LEVEL_FIELD_ID)?.items?.validations;
@@ -158,39 +178,72 @@ const Field = () => {
 			levels: _levels
 		}
 
-	}), [optionsContentTypesFull]);
+	}), [contentTypesFull]);
 
 
 
 	const defaultValue = useMemo(() => getDefaultValue({
 		entries: defaults, 
-		entriesTitles, 
 		locale: sdk.field.locale, 
-		contentTypes: optionsContentTypes,
+		validContentTypes: optionsContentTypes,
+		contentTypesFull: contentTypesFull,
 		levels
 	}), [
 		defaults, 
-		entriesTitles, 
 		sdk.field.locale,
 		optionsContentTypes,
+		contentTypesFull,
 		levels
 	]);
 
 
+	const optionsSortedByLevel = useMemo(() => sortEntriesByLevel(options, sdk.field.locale), [options, sdk.field.locale]);
 
+	const _options = useMemo(() => optionsSortedByLevel.map((option: EntryProps) => {
+			const status = getEntryStatus(option);
+			const contentType = option.sys.contentType.sys.id;
+			const displayField = contentTypesFull.find(({sys}) => sys.id === contentType)?.displayField;
+			const label = (!!displayField && !!option.fields[displayField]) ? option.fields[displayField][sdk.field.locale] : 'Untitled';
+			
+			const level = getEntryLevel({
+				entry: option, 
+				locale: sdk.field.locale,
+				levels
+			});
+
+			return {
+				entry: {
+					sys: {
+						type: 'Link',
+						linkType: option.sys.type,
+						id: option.sys.id,
+					},
+				},
+				value: option.sys.id,
+				label,
+				status,
+				level
+			} as Option;
+		}
+	), [optionsSortedByLevel, sdk.field.locale, levels, contentTypesFull]);
+
+
+	const [isLoaded, setIsLoaded] = useState<boolean>(false)
+
+	//useEffect(() => { setTimeout(() => setIsLoaded(true), 3000) },[])
+	
 	if (
-		isLoadingOptions
-		|| isLoadingDefaults 
-		|| isLoadingEntriesTitles 
+		isLoadingDefaults 
 		|| isLoadingContentTypes
-		|| isLoadinOptionsContentTypesFull
+		|| isLoadingContentTypesFull
+		//|| !isLoaded
 	) {
 		return <Spinner variant='default' />;
 	}
 
 	if (
 		error
-		|| isErrorOptionsContentTypesFull
+		|| isErrorContentTypesFull
 	) {
 		return <Note variant="negative">{error}</Note>;
 	}
@@ -198,9 +251,8 @@ const Field = () => {
 	return (
 		<CustomSelect 
 			defaultValue={defaultValue}
-			options={options}
-			entriesTitles={entriesTitles}
-			levels={levels}
+			isLoadingOptions={isLoadingOptions}
+			options={_options}
 			setIsOpen={setIsOpen}
 			isOpen={isOpen}
 		/>

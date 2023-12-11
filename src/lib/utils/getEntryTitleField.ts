@@ -1,6 +1,9 @@
 import { Environment } from 'contentful-management';
 
-const getEntryTitleField = (environment: Environment, id: string): Promise<string> => {
+const getEntryTitleField = (
+	environment: Environment, 
+	id: string
+): Promise<string> => {
 
 	return new Promise((resolve, reject) => {
 

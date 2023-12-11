@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import {
 	Badge,
 	Box,
 	EntityStatusBadge,
 	Flex,
+	Spinner,
 	Stack,
 	ToggleButton,
 } from '@contentful/f36-components';
@@ -11,6 +11,7 @@ import { FieldAppSDK} from '@contentful/app-sdk';
 import { /* useCMA, */ useSDK } from '@contentful/react-apps-toolkit';
 import Select, {
 	InputProps,
+	MenuListProps,
 	MultiValueGenericProps,
 	MultiValueProps,
 	MultiValueRemoveProps,
@@ -19,13 +20,11 @@ import Select, {
 	components,
 } from 'react-select';
 import { DoneIcon, ArrowDownTrimmedIcon } from '@contentful/f36-icons';
-import getEntryStatus, { PublishStatus } from '../../lib/utils/getEntryStatus';
-import getEntryLevel, { EntryLevel } from '../../lib/utils/getEntryLevel';
+import  { PublishStatus } from '../../lib/utils/getEntryStatus';
+import { EntryLevel } from '../../lib/utils/getEntryLevel';
 import tokens from '@contentful/f36-tokens';
-import { Entry } from '@contentful/app-sdk';
-import removeAccents from '../../lib/utils/removeAccents';
-import _ from 'lodash';
 import './styles.scss';
+import { EntrySaved, Option as OptionProp } from '../../locations/Field';
 
 const COLORMAPPING = [
 	tokens.gray300,
@@ -33,36 +32,31 @@ const COLORMAPPING = [
 	tokens.gray100
 ]
 
-
-/*interface CustomSelectProps {
-	isOpen: boolean;
-}
-
-type ExtendedSelectProps = SelectProps & CustomSelectProps;*/
-
-interface Options {
-	value: string;
-	label: string;
-	entry: EntrySaved;
-	status: PublishStatus;
-	level: EntryLevel;
-}
-
-interface EntrySaved {
-	sys: {
-		type: 'Link';
-		linkType: string;
-		id: string;
-	};
-}
-
 const DropdownIndicator = () => null; //DropdownIndicatorProps
 
 const IndicatorSeparator = () => null; //IndicatorSeparatorProps
 
+const MenuList = (props: MenuListProps) => {
 
+	const {
+		selectProps
+	} = props;
+
+	const {
+		isLoadingOptions,
+	} = selectProps as any;
+
+	if (isLoadingOptions) {
+		return <Spinner style={{margin: 10}} />
+	}
+
+	return (
+		<components.MenuList {...props} />
+	)
+}
 
 const ValueContainer = (props: ValueContainerProps) => {
+
 	let placeholder = null;
 
 	if (
@@ -84,8 +78,9 @@ const ValueContainer = (props: ValueContainerProps) => {
 };
 
 const MultiValueContainer = (props: MultiValueGenericProps) => (
-	<components.MultiValueContainer {...props} />
+		<components.MultiValueContainer {...props} />
 );
+
 
 const MultiValueLabel = (props: MultiValueGenericProps) => {
 
@@ -208,56 +203,29 @@ const Option = (props: OptionProps) => {
 	);
 };
 
-const getEntryTitle = (entriesTitles: any[] = [], contentType: string = '') => {
-	return entriesTitles.find(({ id }) => {
-		return id === contentType;
-	}).displayField;
-};
+
 
 const Input = (props: InputProps) => {
 	return <components.Input {...props} placeholder='Search...' />;
 };
-
-const sortOptionsByLevel = (
-	options: Entry[], 
-	locale: string
-) => {
-
-	if (options.length === 0) return options;
-
-	const sortedOptions = _.flatMap(_.groupBy(options, (option) => {
-		return (option.fields.level && option.fields.level[locale]) ? option.fields.level[locale][0] : null;
-	}), v => _.sortBy(v, (option) => {
-		return (option.fields.tag && option.fields.tag[locale]) ? removeAccents(option.fields.tag[locale].toLowerCase()) : null;
-	}, 'ASC'));
-
-	const sortedGroup = _.sortBy(sortedOptions, (option) => {
-		return (option.fields.level && option.fields.tag[locale]) ? removeAccents(option.fields.level[locale][0].toLowerCase()) : null;
-	});
-
-	return sortedGroup;
-}
 
 
 
 const CustomSelect = ({
 	defaultValue,
 	options,
-	entriesTitles,
-	levels,
 	isOpen,
-	setIsOpen
+	setIsOpen,
+	isLoadingOptions,
 }: {
 	defaultValue: any[];
-	options: Entry[];
-	entriesTitles: any[];
-	levels: any[];
+	options: OptionProp[];
 	isOpen: boolean;
 	setIsOpen: (open: boolean) => void;
+	isLoadingOptions: boolean;
 }) => {
 
 	const sdk = useSDK<FieldAppSDK>();
-	const _options = sortOptionsByLevel(options, sdk.field.locale);
 
 	return (
 		<Stack
@@ -276,6 +244,7 @@ const CustomSelect = ({
 						ValueContainer,
 						MultiValueLabel,
 						MultiValueRemove,
+						MenuList
 					}}
 					isClearable={false}
 					styles={{
@@ -297,39 +266,10 @@ const CustomSelect = ({
 					}}
 					hideSelectedOptions={false}
 					menuIsOpen={isOpen}
-					options={
-						_options.map(
-							(option): Options => {
-								const status = getEntryStatus(option);
-								const contentType = option.sys.contentType.sys.id;
-								const entryTitle = getEntryTitle(entriesTitles, contentType);
-
-								const labelObj = option.fields[entryTitle];
-								const label = (labelObj && labelObj[sdk.field.locale]) ? option.fields[entryTitle][sdk.field.locale] : 'Untitled';
-
-								const level = getEntryLevel({
-									entry: option, 
-									locale: sdk.field.locale,
-									levels
-								});
-
-								return {
-									entry: {
-										sys: {
-											type: 'Link',
-											linkType: option.sys.type,
-											id: option.sys.id,
-										},
-									},
-									value: option.sys.id,
-									label,
-									status,
-									level
-								};
-							}
-						)
-					}
+					options={options}
 					classNamePrefix='crs'
+					// @ts-ignore
+					isLoadingOptions={isLoadingOptions}
 				/>
 			</Box>
 			<Box style={{ width: 42 }}>
