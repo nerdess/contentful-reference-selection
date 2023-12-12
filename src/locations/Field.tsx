@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Spinner, Note } from '@contentful/f36-components';
 import { FieldAppSDK, Entry } from '@contentful/app-sdk';
 import { /* useCMA, */ useSDK } from '@contentful/react-apps-toolkit';
@@ -97,14 +97,6 @@ const getIds = (value: any) => {
   return [];
 };
 
-const validationCheck = (field: FieldAppSDK['field']): boolean | string => {
-
-  if (field.type !== 'Array' /*&& field.type !== 'Link'*/) {
-    return 'This app only works on a reference (many) field 🤡';
-  }
-
-  return false;
-}
 
 const Field = () => {
 
@@ -112,7 +104,8 @@ const Field = () => {
 
 	const [isOpen, setIsOpen] = useState<boolean>(false);
 	const sdk = useSDK<FieldAppSDK>();
-	const error = useMemo(() => validationCheck(sdk.field), [sdk.field]);
+
+
 	const validations = useMemo(() => getValidationsFromField(sdk.field), [sdk.field]);
 
 	const optionsContentTypes: string[] = useMemo(
@@ -124,10 +117,23 @@ const Field = () => {
 		[validations]
 	);
 
+	const error = useMemo(() => {
+
+		if (sdk.field.type !== 'Array' /*&& field.type !== 'Link'*/) {
+			return 'This app only works on a reference (many) field 🤡';
+		}
+
+		if (optionsContentTypes.length === 0) {
+			return 'You have not added any entry type to select form, please do so in the content model of this entry 😎';
+		}
+
+
+	}, [
+		sdk.field,
+		optionsContentTypes
+	]);
+
   	const defaultIds = useMemo(() => getIds(sdk.field.getValue()), [sdk.field]);
-
-
-	console.log('defaultIds', defaultIds)
 
 	const {
 		isLoading: isLoadingContentTypes,
@@ -226,17 +232,11 @@ const Field = () => {
 			} as Option;
 		}
 	), [optionsSortedByLevel, sdk.field.locale, levels, contentTypesFull]);
-
-
-	const [isLoaded, setIsLoaded] = useState<boolean>(false)
-
-	//useEffect(() => { setTimeout(() => setIsLoaded(true), 3000) },[])
 	
 	if (
 		isLoadingDefaults 
 		|| isLoadingContentTypes
 		|| isLoadingContentTypesFull
-		//|| !isLoaded
 	) {
 		return <Spinner variant='default' />;
 	}

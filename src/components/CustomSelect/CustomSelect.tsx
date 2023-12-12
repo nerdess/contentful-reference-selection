@@ -7,7 +7,7 @@ import {
 	Stack,
 	ToggleButton,
 } from '@contentful/f36-components';
-import { FieldAppSDK} from '@contentful/app-sdk';
+import { FieldAppSDK } from '@contentful/app-sdk';
 import { /* useCMA, */ useSDK } from '@contentful/react-apps-toolkit';
 import Select, {
 	InputProps,
@@ -16,21 +16,18 @@ import Select, {
 	MultiValueProps,
 	MultiValueRemoveProps,
 	OptionProps,
+	StylesConfig,
 	ValueContainerProps,
 	components,
 } from 'react-select';
 import { DoneIcon, ArrowDownTrimmedIcon } from '@contentful/f36-icons';
-import  { PublishStatus } from '../../lib/utils/getEntryStatus';
+import { PublishStatus } from '../../lib/utils/getEntryStatus';
 import { EntryLevel } from '../../lib/utils/getEntryLevel';
 import tokens from '@contentful/f36-tokens';
-import './styles.scss';
 import { EntrySaved, Option as OptionProp } from '../../locations/Field';
+import './styles.scss';
 
-const COLORMAPPING = [
-	tokens.gray300,
-	tokens.gray200,
-	tokens.gray100
-]
+const COLORMAPPING = [tokens.gray300, tokens.gray200, tokens.gray100];
 
 const DropdownIndicator = () => null; //DropdownIndicatorProps
 
@@ -38,25 +35,20 @@ const IndicatorSeparator = () => null; //IndicatorSeparatorProps
 
 const MenuList = (props: MenuListProps) => {
 
-	const {
-		selectProps
-	} = props;
-
-	const {
-		isLoadingOptions,
-	} = selectProps as any;
+	const { selectProps } = props;
+	const { isLoadingOptions } = selectProps as any;
 
 	if (isLoadingOptions) {
-		return <Spinner style={{margin: 10}} />
+		return <Spinner style={{ margin: 10 }} />;
 	}
 
-	return (
-		<components.MenuList {...props} />
-	)
-}
+	return <components.MenuList {...props} />;
+};
 
 const ValueContainer = (props: ValueContainerProps) => {
 
+	const { selectProps } = props;
+	const { setIsOpen } = selectProps as any;
 	let placeholder = null;
 
 	if (
@@ -70,7 +62,16 @@ const ValueContainer = (props: ValueContainerProps) => {
 	return (
 		<Flex flexDirection='column' justifyContent='center' fullWidth>
 			{placeholder}
-			<Box>
+			<Box
+				style={{ cursor: 'pointer' }}
+				onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+					const targetElement = e.target as HTMLDivElement;
+
+					if (targetElement.classList.contains('crs__value-container')) {
+						setIsOpen((isOpen: boolean) => !isOpen);
+					}
+				}}
+			>
 				<components.ValueContainer {...props} />
 			</Box>
 		</Flex>
@@ -78,22 +79,18 @@ const ValueContainer = (props: ValueContainerProps) => {
 };
 
 const MultiValueContainer = (props: MultiValueGenericProps) => (
-		<components.MultiValueContainer {...props} />
+	<components.MultiValueContainer {...props} />
 );
 
-
 const MultiValueLabel = (props: MultiValueGenericProps) => {
-
 	const { innerProps, data } = props as {
 		innerProps: MultiValueProps['innerProps'];
 		data: any;
 	};
 
 	const { css } = innerProps;
-	const {level} = data;
-
+	const { level } = data;
 	const bgColor = getBgColor(level.level);
-
 	const newInnerProps = {
 		...innerProps,
 		css: {
@@ -110,14 +107,14 @@ const MultiValueLabel = (props: MultiValueGenericProps) => {
 };
 
 const MultiValueRemove = (props: MultiValueRemoveProps) => {
+
 	const { innerProps, data } = props as {
 		innerProps: MultiValueRemoveProps['innerProps'];
 		data: any;
 	};
 
 	const { css } = innerProps;
-	const {level} = data;
-
+	const { level } = data;
 	const bgColor = getBgColor(level.level);
 
 	const newInnerProps = {
@@ -148,16 +145,17 @@ const MultiValueRemove = (props: MultiValueRemoveProps) => {
 };
 
 const getBgColor = (level: number | null) => {
-	return (level && COLORMAPPING[level-1]) ? COLORMAPPING[level-1] : 'transparent';
-}
+	return level && COLORMAPPING[level - 1]
+		? COLORMAPPING[level - 1]
+		: 'transparent';
+};
 
 const Option = (props: OptionProps) => {
-
 	const { data } = props;
 
 	const {
 		status,
-		level
+		level,
 	}: {
 		status: PublishStatus;
 		level: EntryLevel;
@@ -167,28 +165,29 @@ const Option = (props: OptionProps) => {
 
 	return (
 		<components.Option {...props}>
-			<Stack 
-				fullWidth 
-				justifyContent='space-between'
-			>
+			<Stack fullWidth justifyContent='space-between'>
 				<Stack fullWidth justifyContent='space-between'>
 					<Box>{props.label}</Box>
 					<Stack justifyContent='space-between'>
-						{(!!level.level && !!level.label) && <Box>
-							<Badge 
-								style={{
-									backgroundColor: bgColor, 
-									whiteSpace: 'nowrap',
-									color: 'inherit'
-								}}
-							>
-								<span style={{
-									fontWeight: 'normal'
-								}}>
-									{level.label}
-								</span>
-							</Badge>
-						</Box>}
+						{!!level.level && !!level.label && (
+							<Box>
+								<Badge
+									style={{
+										backgroundColor: bgColor,
+										whiteSpace: 'nowrap',
+										color: 'inherit',
+									}}
+								>
+									<span
+										style={{
+											fontWeight: 'normal',
+										}}
+									>
+										{level.label}
+									</span>
+								</Badge>
+							</Box>
+						)}
 						<Box>
 							<EntityStatusBadge entityStatus={status} />
 						</Box>
@@ -203,13 +202,9 @@ const Option = (props: OptionProps) => {
 	);
 };
 
-
-
 const Input = (props: InputProps) => {
 	return <components.Input {...props} placeholder='Search...' />;
 };
-
-
 
 const CustomSelect = ({
 	defaultValue,
@@ -221,10 +216,10 @@ const CustomSelect = ({
 	defaultValue: any[];
 	options: OptionProp[];
 	isOpen: boolean;
-	setIsOpen: (open: boolean) => void;
+	//setIsOpen: (open: boolean) => boolean;
+	setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	isLoadingOptions: boolean;
 }) => {
-
 	const sdk = useSDK<FieldAppSDK>();
 
 	return (
@@ -244,7 +239,7 @@ const CustomSelect = ({
 						ValueContainer,
 						MultiValueLabel,
 						MultiValueRemove,
-						MenuList
+						MenuList,
 					}}
 					isClearable={false}
 					styles={{
@@ -252,7 +247,7 @@ const CustomSelect = ({
 							...baseStyles,
 							borderColor: 'transparent',
 						}),
-					}}
+					} as StylesConfig}
 					defaultValue={defaultValue}
 					isMulti
 					name={sdk.field.id}
@@ -270,11 +265,12 @@ const CustomSelect = ({
 					classNamePrefix='crs'
 					// @ts-ignore
 					isLoadingOptions={isLoadingOptions}
+					setIsOpen={setIsOpen}
 				/>
 			</Box>
 			<Box style={{ width: 42 }}>
 				<ToggleButton
-					className="crs__toggle-button"
+					className='crs__toggle-button'
 					isActive={false}
 					onToggle={() => setIsOpen(!isOpen)}
 					aria-label='Toggle'
