@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import useCMA from './useCMA';
 import { ContentType } from 'contentful-management';
+import { ReadableStreamDefaultController } from 'node:stream/web';
 
 type GetEntriesHookResult = {
     isLoading: boolean;
@@ -25,12 +26,11 @@ const useGetContentTypesByNames = (
 
         environment.getContentTypes().then(({items}) => {
         
-            const foo = items.filter(({sys}) => {
+            const result = items.filter(({sys}) => {
                 return names.includes(sys.id)
             });
-
+            setResult(result);
             setIsLoading(false);
-            setResult(foo);
         }); //todo: error handling
 
         return () => setIsLoading(false);

@@ -22,8 +22,16 @@ const useGetContentTypesByIds = (ids: string[]): Result => {
             return environment.getEntry(id);
         });
 
-        Promise.all(promises).then((results) => {
-            const types = results.map(({sys}) => sys.contentType.sys.id);
+        Promise
+		.allSettled(promises)
+		.then((results) => {
+            const types = results.map((result) => {
+				if (result.status === 'fulfilled') {
+					return result.value.sys.contentType.sys.id
+				}
+				return null;
+
+			}).filter((result) => result !== null);
             setIsLoading(false);
             setContentTypes(types);
         });

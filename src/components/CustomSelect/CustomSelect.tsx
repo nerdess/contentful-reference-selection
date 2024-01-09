@@ -210,15 +210,16 @@ const CustomSelect = ({
 	defaultValue,
 	options,
 	isOpen,
-	setIsOpen,
 	isLoadingOptions,
+	setIsOpen,
+	setValue
 }: {
 	defaultValue: any[];
 	options: OptionProp[];
 	isOpen: boolean;
-	//setIsOpen: (open: boolean) => boolean;
-	setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	isLoadingOptions: boolean;
+	setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
+	setValue: React.Dispatch<React.SetStateAction<any>>;
 }) => {
 	const sdk = useSDK<FieldAppSDK>();
 
@@ -257,7 +258,7 @@ const CustomSelect = ({
 						const result = newValue.map(
 							({ entry }: { entry: EntrySaved }) => entry
 						);
-						sdk.field.setValue(result);
+						setValue(result);
 					}}
 					hideSelectedOptions={false}
 					menuIsOpen={isOpen}

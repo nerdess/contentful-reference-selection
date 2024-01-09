@@ -12,8 +12,11 @@ const useGetEntriesByIds = (
 ): GetEntriesHookResult => {
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [entries, setEntries] = useState<Entry[]>([]);
-	const { environment } = useCMA();
+	const [entries, setEntries] = useState<any[]>([]); //Entry[] | '...'
+	const { 
+        isLoading: isLoadingCMA,
+        environment
+     } = useCMA();
 
 	useEffect(() => {
 		if (!environment) return;
@@ -27,14 +30,20 @@ const useGetEntriesByIds = (
 			});
         });
 
-        Promise.all(promises).then((results) => {
+        Promise.allSettled(promises).then((results) => {
+ 
+            const _results = results.map((result, i) => {
+                if (result.status === 'fulfilled' && result.value.items.length === 1) {
+                    return result.value.items[0];
+                } 
+                return {
+                    id: ids[i],
+                    error: true,
+                }
+            })
 
-            const items: Entry[][] = results.map(({items}) => items)
-            const itemsConcat = items.reduce((result, currentArray) => {
-                return result.concat(currentArray);
-              }, []);
+            setEntries(_results);
             setIsLoading(false);
-            setEntries(itemsConcat);
           
         });
 
@@ -44,7 +53,7 @@ const useGetEntriesByIds = (
 	}, [ids, environment]);
 
 	return {
-        isLoading,
+        isLoading: isLoading || isLoadingCMA,
 		entries,
 	};
 };

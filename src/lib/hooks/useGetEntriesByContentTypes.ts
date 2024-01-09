@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Entry } from '@contentful/app-sdk';
+//import { Entry } from '@contentful/app-sdk';
+import { EntryProps } from 'contentful-management';
 import useCMA from './useCMA';
 
 type GetEntriesHookResult = {
     isLoading: boolean;
-	entries: Entry[];
+	entries: EntryProps[];
 };
 
 const useGetEntriesByContentTypes = (
@@ -12,7 +13,7 @@ const useGetEntriesByContentTypes = (
 ): GetEntriesHookResult => {
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
-	const [entries, setEntries] = useState<Entry[]>([]);
+	const [entries, setEntries] = useState<EntryProps[]>([]);
 	const { environment } = useCMA();
 
 	useEffect(() => {
@@ -28,12 +29,16 @@ const useGetEntriesByContentTypes = (
         });
 
         Promise.all(promises).then((results) => {
-            const items: Entry[][] = results.map(({items}) => items)
+            const items: EntryProps[][] = results
+                .map(({items}) => items);
+
             const itemsConcat = items.reduce((result, currentArray) => {
                 return result.concat(currentArray);
-              }, []);
-            setIsLoading(false);
+              }, [])
+              .filter((item) => !item.sys.archivedVersion);
+
             setEntries(itemsConcat);
+            setIsLoading(false);
         }); //todo: error handling
 
         return () => setIsLoading(false);
